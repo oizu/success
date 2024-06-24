@@ -1,7 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../db/db';
-import {PatreonToken} from "./patreon.token";
-import {options} from "joi";
+import { PatreonToken } from './patreon.token';
 
 export class Account extends Model {
   public id!: number;

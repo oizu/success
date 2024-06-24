@@ -6,11 +6,9 @@ import * as fs from 'fs';
 import { Application, json, urlencoded } from 'express';
 
 import rateLimiter from './middlewares/limit.rate';
-import tokenValidator from './middlewares/validate.token';
 import { uncaughtErrorHandler } from './handlers/error.handler';
 
-import accounts from './routes/account.routes';
-import Routes from "./routes";
+import Routes from './routes';
 
 export const logger = winston.createLogger({
   level: 'debug',
