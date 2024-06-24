@@ -1,0 +1,22 @@
+<article *ngIf="code == 'privacy'">
+  <h1>Privacy Policy</h1>
+  <p >
+    Privacy Policy Text
+  </p>
+</article>
+
+<article *ngIf="code == 'terms'">
+  <h1>Terms of Service</h1>
+  <p >
+    Terms of Service Text
+  </p>
+</article>
+
+<article *ngIf="code != 'terms' && code != 'privacy'">
+  <h1>Not Found</h1>
+  <p >
+    The article requested not found
+  </p>
+</article>
+
+<app-footer></app-footer>

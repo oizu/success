@@ -1,0 +1,9 @@
+<div class="container">
+  <app-slider [scrollTemplate]="templateRef" [items]="features" [scrollStep]="scrollStep"></app-slider>
+</div>
+<app-footer></app-footer>
+<ng-template #templateRef let-item>
+    <h3 class="title" matListItemTitle>{{ item.title }}</h3>
+    <p class="bullet" matListItemLine *ngFor="let bullet of item.bullets">{{bullet}}</p>
+</ng-template>
+

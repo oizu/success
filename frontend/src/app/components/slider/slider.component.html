@@ -1,0 +1,20 @@
+<div class="item-slider-container">
+<!--
+  <h4 class="px-3 mb-3 item-title">{{ scrollTitle }}</h4>
+-->
+  <div class="item-slider">
+    <div (click)="slide(-scrollStep)" [ngClass]="{ 'is-disabled-hide': scrollTop < 1 }" class="arrow up">
+      <mat-icon>keyboard_arrow_up</mat-icon>
+    </div>
+    <div #scroll (scroll)="scrollCheck()" class="item-container slides">
+      <mat-list class="list" fxLayout="column" fxFlexFill>
+        <mat-list-item class="slide" fxFlex="0 0 100%" fxFlexAlign="center" *ngFor="let item of items">
+          <ng-container *ngTemplateOutlet="scrollTemplate; context: { $implicit: item }"></ng-container>
+        </mat-list-item>
+      </mat-list>
+    </div>
+    <div (click)="slide(scrollStep)" [ngClass]="{ 'is-disabled-hide': scrollEnd }" class="arrow down">
+      <mat-icon>keyboard_arrow_down</mat-icon>
+    </div>
+  </div>
+</div>

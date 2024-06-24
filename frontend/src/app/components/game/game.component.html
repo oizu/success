@@ -1,0 +1,27 @@
+<div class="indicator" *ngIf="loading">
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</div>
+<div class="game" #canvas>
+  <div class="menu" *ngIf="!loading">
+    <button [cdkMenuTriggerFor]="menu" class="standalone-item">Click me!</button>
+    <ng-template #menu>
+      <div class="menu" cdkMenu>
+        <div cdkMenuGroup>
+          <div class="menu-item">Face up</div>
+          <button cdkMenuItemRadio
+                  class="menu-item"
+                  [cdkMenuItemChecked]="action === selectedAction"
+                  (cdkMenuItemTriggered)="this.executeAction(action)"
+                  *ngFor="let action of actions">
+            {{action}}
+          </button>
+        </div>
+        <hr/>
+        <button cdkMenuItem
+                class="menu-item"
+                (cdkMenuItemTriggered)="reset()">Reset
+        </button>
+      </div>
+    </ng-template>
+  </div>
+</div>
