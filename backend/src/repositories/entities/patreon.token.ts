@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import { sequelize } from '../db/db';
+import { sequelize } from '../../db/db';
 import { Account } from './account';
 
 export class PatreonToken extends Model {

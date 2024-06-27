@@ -11,7 +11,7 @@ import {User} from "../models/user";
 export class SecurityService {
   private readonly session_id: string;
 
-  private web_socket!: Subject<string>;
+  private web_socket!: Subject<string> | undefined;
 
   private readonly url = {
     protocol: 'https',
@@ -24,21 +24,27 @@ export class SecurityService {
   };
 
   constructor() {
-    this.url.state = this.session_id = uuid();
+    this.session_id = uuid();
+    this.url.state = this.session_id;
 
     if (typeof document !== 'undefined') {
+      this.session_id = localStorage.getItem('session_id') || this.session_id;
+      this.url.state = this.session_id;
+
+      localStorage.setItem('session_id', this.session_id);
+
       this.connect(environment.web_socket_url);
-      this.login.subscribe({
-        complete: () => {
-          this.web_socket.complete();
-        }
-      });
     }
   }
 
   private connect(url: string): Subject<string> {
     if (!this.web_socket) {
       this.web_socket = this.create(url);
+      this.login.subscribe({
+        complete: () => {
+          this.web_socket?.complete();
+        }
+      });
     }
     return this.web_socket;
   }
@@ -52,7 +58,8 @@ export class SecurityService {
         this.login.next(user);
       },
       error: (error: any) => {
-        console.error(`Error receiving message from server: ${error}`);
+        let message = JSON.stringify(error);
+        console.error(`Error receiving message from server: ${message}`);
       }
     });
 
@@ -70,9 +77,10 @@ export class SecurityService {
     let response_type = `response_type=${this.url.response_type}`;
     let client_id = `client_id=${this.url.client_id}`;
     let state = `state=${this.url.state}`;
+    let scope = 'scope=identity%20identity%5Bemail%5D%20identity.memberships';
     let redirect_uri = `redirect_uri=${this.url.redirect_uri}`;
 
-    return `${url}?${response_type}&${client_id}&${redirect_uri}&${state}`;
+    return `${url}?${response_type}&${client_id}&${redirect_uri}&${state}&${scope}`;
   }
 
   public checkout(): void {

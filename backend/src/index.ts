@@ -2,23 +2,27 @@ import * as morgan from 'morgan';
 import * as helmet from 'helmet';
 import * as winston from 'winston';
 import * as fs from 'fs';
-
-import { Application, json, urlencoded } from 'express';
-
-import rateLimiter from './middlewares/limit.rate';
-import { uncaughtErrorHandler } from './handlers/error.handler';
-
-import Routes from './routes';
+const cors = require('cors');
 
 export const logger = winston.createLogger({
-  level: 'debug',
+  level: process.env.LOG_LEVEL || 'debug',
   format: winston.format.json(),
-  defaultMeta: { service: 'user-service' },
+  defaultMeta: { service: 'Backend Service' },
   transports: [
+    new winston.transports.Console({ level: 'debug' }),
+    new winston.transports.File({ filename: './logs/debug.log', level: 'debug' }),
     new winston.transports.File({ filename: './logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: './logs/combined.log' }),
   ],
 });
+
+import { Application, json, urlencoded } from 'express';
+
+import rateLimiter from './middlewares/limit.rate';
+
+import Routes from './routes';
+import { BadLuck } from './models/luck/bad.luck';
+
 
 export default class Server {
   private readonly application: Application;
@@ -50,14 +54,14 @@ export default class Server {
     this.application.use(json());
     this.application.use(helmet());
     this.application.use(rateLimiter()); //  apply to all requests
-    // this.application.use(tokenValidator); //  apply to all requests
-    this.application.use(uncaughtErrorHandler);
+    this.application.use(cors({credentials: true, origin: process.env.CORS_ORIGIN}));
+    this.application.use(BadLuck.uncaught);
 
     new Routes(this.application);
   }
 }
 
-process.on('beforeExit', function (err) {
-  logger.error(JSON.stringify(err));
-  console.error(err);
+process.on('beforeExit', function (error) {
+  logger.error(JSON.stringify(error));
+  console.error(error);
 });

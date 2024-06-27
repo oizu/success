@@ -5020,7 +5020,7 @@ to native implementations of the API.`;
               }
             }
             if (sensor) {
-              this.api = 'sensor';
+              this.send = 'sensor';
               this.sensor = sensor;
               this.sensor.addEventListener('reading', this._onSensorRead);
               this.sensor.start();
@@ -5029,7 +5029,7 @@ to native implementations of the API.`;
         }, {
           key: 'useDeviceMotion',
           value: function useDeviceMotion() {
-            this.api = 'devicemotion';
+            this.send = 'devicemotion';
             this.fusionSensor = new FusionPoseSensor(this.config.K_FILTER, this.config.PREDICTION_TIME_S, this.config.YAW_ONLY, this.config.DEBUG);
             if (this.sensor) {
               this.sensor.removeEventListener('reading', this._onSensorRead);

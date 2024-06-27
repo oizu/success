@@ -5,10 +5,6 @@ import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {NgForOf, NgIf} from "@angular/common";
 import {MatMenu} from "@angular/material/menu";
-/*
-import {VRButton} from 'three/examples/jsm/webxr/VRButton';
-*/
-
 import {
   CdkMenu,
   CdkMenuGroup,
@@ -22,6 +18,9 @@ import {FlexLayoutServerModule} from "@angular/flex-layout/server";
 import {MatProgressBar} from "@angular/material/progress-bar";
 import {LoopSubdivision as Subdivision} from "three-subdivide";
 import {AnimationMixer} from "three";
+import {HTTP_INTERCEPTORS, HttpClient} from "@angular/common/http";
+import {AuthenticationInterceptor} from '../../interceptors/authentication.interceptor';
+
 
 @Component({
   selector: 'app-game',
@@ -42,7 +41,14 @@ import {AnimationMixer} from "three";
     MatProgressBar
   ],
   templateUrl: './game.component.html',
-  styleUrl: './game.component.scss'
+  styleUrl: './game.component.scss',
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthenticationInterceptor,
+      multi: true,
+    }
+  ]
 })
 export class GameComponent implements AfterViewInit, OnDestroy {
   @ViewChild("canvas") private canvas!: ElementRef;
@@ -81,8 +87,31 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   private init() {
     // Load models
-    let url = 'assets/models/Eve_40.gltf';
     this.loader = new GLTFLoader();
+
+/*
+    const models = ['eve', 'club'];
+
+    let subjects: Promise<GLTF>[] = [];
+
+    models.map((item, index) => {
+      const gltf = this.loader.loadAsync(`http://localhost:8080/api/storage/${item}`, this.updateProgress);
+
+      subjects.push(gltf);
+    });
+*/
+
+    let current_user = localStorage.getItem('current_user');
+
+    if (current_user) {
+      const user = JSON.parse(current_user);
+      this.loader.setRequestHeader({
+        'Authorization':  `Bearer ${user.tokens.jwt}`
+      });
+      this.loader.withCredentials = true;
+    }
+
+    let url = '/api/storage/model/eve';
     const gltf = this.loader.loadAsync(url, this.updateProgress);
 
     // Renderer
@@ -112,6 +141,12 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.camera.lookAt(0, 3, 0);
+
+/*
+    Promise.all(subjects).then((models: GLTF[]) => {
+
+    }).catch((error) => {});
+*/
 
     gltf.then((model) => {
       this.model = model.scene;
