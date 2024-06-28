@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { GetObjectCommand, GetObjectCommandOutput, S3Client } from '@aws-sdk/client-s3';
 
 import { BadLuck } from '../models/luck/bad.luck';
-import { BlobLuck } from '../models/luck/blob.luck';
 import { BaseController } from './base.controller';
 
 export default class StorageController extends BaseController {
@@ -26,17 +25,17 @@ export default class StorageController extends BaseController {
 
     const command = new GetObjectCommand({
       Bucket: 'oizu-models',
-      Key: `${model_name}.gltf`,
+      Key: `${model_name}.glb`
     });
 
     this.client.send(command).then((body: GetObjectCommandOutput) => {
-      body.Body?.transformToString().then((array: string) => {
-        const data = array; // @TODO: Add obfuscation;
+      body.Body?.transformToByteArray().then((data) => {
 
-        response.setHeader('Content-Type', 'model/gltf+json');
-        response.setHeader('Content-Length', data.length);
+        response.contentType('model/gltf-binary');
+        response.type('arraybuffer');
+        response.status(200);
+        response.send(Buffer.from(data));
 
-        BlobLuck.send(response, data);
       }).catch(error => {
         BadLuck.send(error, request, response, 'Error converting a model.');
       });

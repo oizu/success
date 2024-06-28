@@ -30,8 +30,8 @@ export class BadLuck extends Luck {
   public static send(error: any, request: Request, response: Response, message: string);
 
   public static send(error: any, request: Request, response: Response, message: string, code?: number) {
-    code = typeof code !== 'number' ? 418 : code;
-    this.replay(code, error, request, response, message); // 418 = I'm a teapot response code, RFC 2324
+    code = !code || code < 400 ? 418 : code; // 418 = I'm a teapot response code, RFC 2324
+    this.replay(code, error, request, response, message);
   }
 
   public static uncaught(error: any, request: Request, response: Response, next: NextFunction) {

@@ -10,6 +10,6 @@ export class GoodLuck extends Luck {
   }
 
   static send(response: Response, data: any) {
-    response.status(200).send(new GoodLuck(data));
+    response.status(200).json(new GoodLuck(data));
   }
 }

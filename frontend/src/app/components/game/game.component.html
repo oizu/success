@@ -11,7 +11,7 @@
           <button cdkMenuItemRadio
                   class="menu-item"
                   [cdkMenuItemChecked]="action === selectedAction"
-                  (cdkMenuItemTriggered)="this.executeAction(action)"
+                  (cdkMenuItemTriggered)="this.execute_action(action)"
                   *ngFor="let action of actions">
             {{action}}
           </button>

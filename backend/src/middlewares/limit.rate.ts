@@ -11,6 +11,6 @@ export default () => {
     windowMs: limit * 60 * 1000, // rateLimitTime minutes
     max: requests, // limit each IP to 3000 requests per windowMs
     delayMs: 0,
-    handler: 'Rate limit exceeded, please try again later some time.',
+    message: 'Rate limit exceeded, please try again later some time.',
   });
 };

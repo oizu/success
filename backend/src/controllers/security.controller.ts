@@ -18,7 +18,7 @@ export default class SecurityController extends BaseController {
   constructor() {
     super();
 
-    const that = this;
+    const scope = this;
 
     logger.debug(`SecurityCController creating WebSocketServer on port ${process.env.WEB_SOCKET_PORT}`);
     this.server = new WebSocketServer({port: process.env.WEB_SOCKET_PORT});
@@ -37,13 +37,14 @@ export default class SecurityController extends BaseController {
         session_id = JSON.parse(message);
 
         logger.debug(`WebSocket new session: ${session_id}`);
-        that.clients[session_id] = socket;
+
+        scope.clients[session_id] = socket;
       });
 
       socket.on('close', () => {
         if (session_id) {
           logger.debug(`WebSocket closing session: ${session_id}`);
-          delete this.clients[session_id];
+          delete scope.clients[session_id];
         }
         logger.debug(`WebSocket closed`);
       });

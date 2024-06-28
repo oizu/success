@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {NgForOf, NgIf} from "@angular/common";
 import {MatMenu} from "@angular/material/menu";
@@ -20,6 +20,10 @@ import {LoopSubdivision as Subdivision} from "three-subdivide";
 import {AnimationMixer} from "three";
 import {HTTP_INTERCEPTORS, HttpClient} from "@angular/common/http";
 import {AuthenticationInterceptor} from '../../interceptors/authentication.interceptor';
+import {environment} from "../../../environments/environment";
+import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
+import {KTX2Loader} from "three/examples/jsm/loaders/KTX2Loader.js";
+import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 
 @Component({
@@ -75,6 +79,21 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   constructor() {
   }
 
+  ngOnDestroy(): void {
+    if (typeof document != 'undefined') {
+      this.dispose(this.scene);
+      this.scene?.remove(this.model);
+
+      this.controls?.dispose();
+      this.renderer?.dispose();
+      this.renderer?.dispose();
+
+      this.mixer?.stopAllAction();
+      this.mixer?.uncacheRoot(this.model);
+      this.mixer?.uncacheAction(this.currentAction.getClip());
+    }
+  }
+
   ngAfterViewInit(): void {
     if (typeof document !== 'undefined') {
       this.init();
@@ -87,32 +106,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   private init() {
     // Load models
-    this.loader = new GLTFLoader();
+    this.loader = this.create_loader();
 
-/*
-    const models = ['eve', 'club'];
-
-    let subjects: Promise<GLTF>[] = [];
-
-    models.map((item, index) => {
-      const gltf = this.loader.loadAsync(`http://localhost:8080/api/storage/${item}`, this.updateProgress);
-
-      subjects.push(gltf);
-    });
-*/
-
-    let current_user = localStorage.getItem('current_user');
-
-    if (current_user) {
-      const user = JSON.parse(current_user);
-      this.loader.setRequestHeader({
-        'Authorization':  `Bearer ${user.tokens.jwt}`
-      });
-      this.loader.withCredentials = true;
-    }
-
-    let url = '/api/storage/model/eve';
-    const gltf = this.loader.loadAsync(url, this.updateProgress);
+    const models: Promise<GLTF>[] = ['club', 'eve'].map((model: string) =>
+      this.loader.loadAsync(`${environment.api_server}/storage/model/${model}`, this.update_progress)
+    );
 
     // Renderer
     this.renderer = new THREE.WebGLRenderer({antialias: true});
@@ -122,9 +120,6 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.renderer.xr.enabled = true;
 
     this.canvas.nativeElement.appendChild(this.renderer.domElement);
-    /*
-        this.canvas.nativeElement.appendChild(VRButton.createButton(this.renderer));
-    */
 
     // Scene
     this.scene = new THREE.Scene();
@@ -134,38 +129,64 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 20) / (window.innerHeight - 100), .1, 30);
     this.camera.position.set(2.1, 3.5, -0.3);
 
-    // Light
-    const light = new THREE.HemisphereLight(0xffffff); // soft white light
-    this.scene.add(light);
-
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.camera.lookAt(0, 3, 0);
 
 /*
-    Promise.all(subjects).then((models: GLTF[]) => {
-
-    }).catch((error) => {});
+    models[2].then(model => {
+      this.scene.add(model.scene);
+      this.renderer.setAnimationLoop(this.animate.bind(this));
+      this.loading = false;
+    });
 */
 
-    gltf.then((model) => {
-      this.model = model.scene;
+    Promise.all(models).then((models: GLTF[]) => {
+      console.log(`Downloaded eve models.`)
 
-      this.scene.add(this.model);
+      models.map(model => {
+        this.scene.add(model.scene);
+      })
 
-      this.mixer = new AnimationMixer(this.model);
+      let armature = this.scene.getObjectByName('Armature');
+      let body = this.scene.getObjectByName('Eve-BODY');
 
-      this.animations = model.animations;
-      this.currentAction = this.mixer.clipAction(this.animations[0])
+      if (body) armature?.add(body);
 
       this.renderer.setAnimationLoop(this.animate.bind(this));
 
       this.loading = false;
+    }).catch((error) => {
+      console.error(`Error model loading ${error}`);
     });
   }
 
+  private create_loader() {
+    const result = new GLTFLoader();
+
+    let current_user = localStorage.getItem('current_user');
+    if (current_user) {
+      const user = JSON.parse(current_user);
+
+      result.withCredentials = true;
+      result.setRequestHeader({'Authorization': `Bearer ${user.tokens.jwt}`});
+    }
+
+    const draco = new DRACOLoader();
+    draco.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+
+    const ktx2 = new KTX2Loader();
+    ktx2.setTranscoderPath('./three/examples/jsm/libs/basis/');
+
+    result.setDRACOLoader(draco);
+    result.setKTX2Loader(ktx2);
+    result.setMeshoptDecoder(MeshoptDecoder);
+
+    return result;
+  }
+
   @HostListener('window:resize', ['$event'])
-  private onWindowResize() {
+  private window_resize() {
     if (typeof document !== 'undefined') {
       let width = window.innerWidth - 20;
       let height = window.innerHeight - 80;
@@ -176,7 +197,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private updateProgress(event: ProgressEvent) {
+  private update_progress(event: ProgressEvent) {
     this.progress = (event.loaded / event.total) * 100;
   }
 
@@ -211,7 +232,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.renderer.render(this.scene, this.camera);
   }
 
-  protected executeAction(name: string) {
+  protected execute_action(name: string) {
     this.selectedAction = name;
 
     if ('Casual' != this.selectedAction) {
@@ -234,42 +255,27 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   }
 
-  ngOnDestroy(): void {
-    if (typeof document != 'undefined') {
-      this.dispose(this.scene);
-      this.scene?.remove(this.model);
-
-      this.controls?.dispose();
-      this.renderer?.dispose();
-      this.renderer?.dispose();
-
-      this.mixer?.stopAllAction();
-      this.mixer?.uncacheRoot(this.model);
-      this.mixer?.uncacheAction(this.currentAction.getClip());
-    }
-  }
-
   private dispose(object3D: THREE.Object3D): void {
     const parent = (object3D as any);
     if (parent instanceof THREE.Mesh || parent instanceof THREE.Points || parent instanceof THREE.Line)
-      this.disposeObject(parent);
+      this.dispose_object(parent);
 
     if (object3D.children)
       object3D.children.forEach(child => this.dispose(child));
   }
 
-  private disposeObject(mesh: THREE.Mesh | THREE.Points | THREE.Line): void {
+  private dispose_object(mesh: THREE.Mesh | THREE.Points | THREE.Line): void {
     if (mesh.geometry) {
       mesh.geometry.dispose();
     }
 
     if (mesh.material) {
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-      materials.forEach(mat => this.disposeMaterial(mat));
+      materials.forEach(mat => this.dispose_material(mat));
     }
   }
 
-  private disposeMaterial(material: THREE.Material): void {
+  private dispose_material(material: THREE.Material): void {
     [
       'map', 'lightMap', 'bumpMap', 'normalMap', 'specularMap', 'envMap',
       'alphaMap', 'aoMap', 'emissiveMap', 'metalnessMap', 'roughnessMap'
