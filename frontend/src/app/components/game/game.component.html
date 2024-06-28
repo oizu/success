@@ -1,27 +1,35 @@
-<div class="indicator" *ngIf="loading">
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-</div>
-<div class="game" #canvas>
-  <div class="menu" *ngIf="!loading">
-    <button [cdkMenuTriggerFor]="menu" class="standalone-item">Click me!</button>
-    <ng-template #menu>
-      <div class="menu" cdkMenu>
-        <div cdkMenuGroup>
-          <div class="menu-item">Face up</div>
-          <button cdkMenuItemRadio
+<div *ngIf="authenticated()">
+  <div class="indicator" *ngIf="loading">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  </div>
+  <div class="game" #canvas>
+    <div class="menu" *ngIf="!loading">
+      <button [cdkMenuTriggerFor]="menu" class="standalone-item">Click me!</button>
+      <ng-template #menu>
+        <div class="menu" cdkMenu>
+          <div cdkMenuGroup>
+            <div class="menu-item">Face up</div>
+            <button cdkMenuItemRadio
+                    class="menu-item"
+                    [cdkMenuItemChecked]="action === selectedAction"
+                    (cdkMenuItemTriggered)="this.execute_action(action)"
+                    *ngFor="let action of actions">
+              {{action}}
+            </button>
+          </div>
+          <hr/>
+          <button cdkMenuItem
                   class="menu-item"
-                  [cdkMenuItemChecked]="action === selectedAction"
-                  (cdkMenuItemTriggered)="this.execute_action(action)"
-                  *ngFor="let action of actions">
-            {{action}}
+                  (cdkMenuItemTriggered)="reset()">Reset
           </button>
         </div>
-        <hr/>
-        <button cdkMenuItem
-                class="menu-item"
-                (cdkMenuItemTriggered)="reset()">Reset
-        </button>
-      </div>
-    </ng-template>
+      </ng-template>
+    </div>
+  </div>
+</div>
+<div *ngIf="!authenticated()">
+
+  <div class="login-screen">
+    Please, login with <a href="{{security.checkin()}}" target="_blank">Patreon</a>.
   </div>
 </div>

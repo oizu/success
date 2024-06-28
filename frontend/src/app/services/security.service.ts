@@ -28,8 +28,7 @@ export class SecurityService {
     this.url.state = this.session_id;
 
     if (typeof document !== 'undefined') {
-      this.session_id = localStorage.getItem('session_id') || this.session_id;
-      this.url.state = this.session_id;
+      this.url.state = this.session_id = localStorage.getItem('session_id') || this.session_id;
 
       localStorage.setItem('session_id', this.session_id);
 

@@ -12,8 +12,8 @@ import { BadLuck } from '../models/luck/bad.luck';
 import { BaseController } from './base.controller';
 
 export default class SecurityController extends BaseController {
-  private server;
-  private clients: any = {};
+  private server: WebSocketServer;
+  private clients: { [key: string]: WebSocket } = {};
 
   constructor() {
     super();
@@ -27,24 +27,24 @@ export default class SecurityController extends BaseController {
       logger.debug(`WebSocketServer new connection.`);
       logger.debug(JSON.stringify(socket));
 
-      let session_id: string;
+      let client_id: string;
 
       socket.on('open', () => {
         logger.debug(`WebSocket opened`);
       });
 
       socket.on('message', (message: string) => {
-        session_id = JSON.parse(message);
+        client_id = JSON.parse(message);
 
-        logger.debug(`WebSocket new session: ${session_id}`);
+        logger.debug(`WebSocket new session: ${client_id}`);
 
-        scope.clients[session_id] = socket;
+        scope.clients[client_id] = socket;
       });
 
       socket.on('close', () => {
-        if (session_id) {
-          logger.debug(`WebSocket closing session: ${session_id}`);
-          delete scope.clients[session_id];
+        if (client_id) {
+          logger.debug(`WebSocket closing session: ${client_id}`);
+          delete scope.clients[client_id];
         }
         logger.debug(`WebSocket closed`);
       });

@@ -1,5 +1,14 @@
 import * as THREE from 'three';
-import {AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  QueryList,
+  ViewChild,
+  ViewChildren
+} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
 import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
@@ -24,6 +33,8 @@ import {environment} from "../../../environments/environment";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
 import {KTX2Loader} from "three/examples/jsm/loaders/KTX2Loader.js";
 import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import {BaseComponent} from "../base/base.component";
+import {SecurityService} from "../../services/security.service";
 
 
 @Component({
@@ -54,8 +65,8 @@ import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
     }
   ]
 })
-export class GameComponent implements AfterViewInit, OnDestroy {
-  @ViewChild("canvas") private canvas!: ElementRef;
+export class GameComponent extends BaseComponent implements AfterViewInit, OnDestroy {
+  @ViewChildren("canvas") private canvas!: QueryList<ElementRef>;
 
   private renderer!: THREE.WebGLRenderer;
   private camera!: THREE.PerspectiveCamera;
@@ -63,20 +74,25 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private loader!: GLTFLoader;
   private scene!: THREE.Scene;
 
+  private models: { [key: string]: THREE.Object3D  } = {};
+  private animations: { [key: string]: THREE.AnimationClip } = {};
+  private textures: { [key: string]: THREE.Texture } = {};
+
   private model!: THREE.Object3D;
   private body!: THREE.Object3D | undefined;
 
   private mixer!: THREE.AnimationMixer;
-  private animations: THREE.AnimationClip[] = [];
   private currentAction!: THREE.AnimationAction;
 
   protected loading: boolean = true;
+  protected initialized: boolean = false;
   protected progress: number = 0;
 
   public actions = ['Casual', 'Tongue out'];
   public selectedAction: string | undefined = 'casual';
 
-  constructor() {
+  constructor(protected security: SecurityService) {
+    super();
   }
 
   ngOnDestroy(): void {
@@ -95,9 +111,13 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    if (typeof document !== 'undefined') {
-      this.init();
+    const scope = this;
+    if (typeof document !== 'undefined' && this.authenticated()) {
+      scope.init();
     }
+    this.security.login.subscribe((event) => {
+      scope.init();
+    })
   }
 
   protected reset() {
@@ -119,7 +139,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
     this.renderer.xr.enabled = true;
 
-    this.canvas.nativeElement.appendChild(this.renderer.domElement);
+    this.canvas.get(0)?.nativeElement.appendChild(this.renderer.domElement);
 
     // Scene
     this.scene = new THREE.Scene();
@@ -156,6 +176,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       this.renderer.setAnimationLoop(this.animate.bind(this));
 
       this.loading = false;
+      this.initialized = true;
     }).catch((error) => {
       console.error(`Error model loading ${error}`);
     });
