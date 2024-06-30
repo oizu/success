@@ -35,8 +35,7 @@ import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import {BaseComponent} from "../base/base.component";
 import {SecurityService} from "../../services/security.service";
 import {FirstPersonControls} from "three/examples/jsm/controls/FirstPersonControls.js";
-import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
-import {iridescence} from "three/examples/jsm/nodes/core/PropertyNode";
+import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls.js";
 
 
 @Component({
@@ -196,7 +195,6 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
       this.run(this.animations['CameraAction'], this.camera, function (item: AnimationAction) {
         scope.controls = new PointerLockControls(scope.camera, scope.renderer.domElement);
 
-        scope.scene.add(scope.controls.getObject());
         scope.run(scope.animations['Sits_on_a_couch_attention_B'], scope.scene.getObjectByName('Armature'));
       });
 
