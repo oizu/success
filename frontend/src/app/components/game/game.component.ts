@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import {RouterOutlet} from '@angular/router';
 import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {NgForOf, NgIf} from "@angular/common";
 import {MatMenu} from "@angular/material/menu";
 import {
@@ -26,7 +25,7 @@ import {FlexLayoutModule} from "@angular/flex-layout";
 import {FlexLayoutServerModule} from "@angular/flex-layout/server";
 import {MatProgressBar} from "@angular/material/progress-bar";
 import {LoopSubdivision as Subdivision} from "three-subdivide";
-import {AnimationMixer} from "three";
+import {AnimationAction, AnimationClip, AnimationMixer, LoopOnce, PerspectiveCamera, Vector3} from "three";
 import {HTTP_INTERCEPTORS, HttpClient} from "@angular/common/http";
 import {AuthenticationInterceptor} from '../../interceptors/authentication.interceptor';
 import {environment} from "../../../environments/environment";
@@ -35,6 +34,9 @@ import {KTX2Loader} from "three/examples/jsm/loaders/KTX2Loader.js";
 import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import {BaseComponent} from "../base/base.component";
 import {SecurityService} from "../../services/security.service";
+import {FirstPersonControls} from "three/examples/jsm/controls/FirstPersonControls.js";
+import {PointerLockControls} from "three/examples/jsm/controls/PointerLockControls";
+import {iridescence} from "three/examples/jsm/nodes/core/PropertyNode";
 
 
 @Component({
@@ -70,7 +72,7 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
 
   private renderer!: THREE.WebGLRenderer;
   private camera!: THREE.PerspectiveCamera;
-  private controls!: OrbitControls;
+  private controls!: PointerLockControls;
   private loader!: GLTFLoader;
   private scene!: THREE.Scene;
 
@@ -90,6 +92,31 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
 
   public actions = ['Casual', 'Tongue out'];
   public selectedAction: string | undefined = 'casual';
+
+  private get_look_at(camera: PerspectiveCamera, distance = 2) {
+    const direction = new THREE.Vector3();
+    const result = new THREE.Vector3();
+    const target = camera.getWorldDirection(direction).multiplyScalar(distance);
+
+    return result.addVectors(camera.position, target);
+  }
+
+  public run(clip: AnimationClip, target?: THREE.Object3D, callback?: any): void {
+    const scope = this;
+    const timeout = clip.duration * 1000;
+    const action = new AnimationAction(this.mixer, clip, target);
+
+    action.clampWhenFinished = true;
+    action.setLoop(THREE.LoopOnce, 1);
+    action.play();
+
+    setTimeout(function() {
+      action.stop();
+
+      if (callback)
+        callback.bind(scope).call(action);
+    }, timeout);
+  }
 
   constructor(protected security: SecurityService) {
     super();
@@ -125,6 +152,8 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
   }
 
   private init() {
+    const scope = this;
+
     // Load models
     this.loader = this.create_loader();
 
@@ -147,31 +176,29 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 20) / (window.innerHeight - 100), .1, 30);
-    this.camera.position.set(2.1, 3.5, -0.3);
-
-    // Controls
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.camera.lookAt(0, 3, 0);
-
-/*
-    models[2].then(model => {
-      this.scene.add(model.scene);
-      this.renderer.setAnimationLoop(this.animate.bind(this));
-      this.loading = false;
-    });
-*/
 
     Promise.all(models).then((models: GLTF[]) => {
-      console.log(`Downloaded eve models.`)
+      console.log(`Downloaded ${models.length} files.`)
 
       models.map(model => {
+
+        model.animations.map((item, index) => {
+          this.animations[item.name] = item;
+        })
+
         this.scene.add(model.scene);
       })
 
-      let armature = this.scene.getObjectByName('Armature');
-      let body = this.scene.getObjectByName('Eve-BODY');
+      this.camera = this.scene.getObjectByName('MainCamera') as PerspectiveCamera || this.camera;
 
-      if (body) armature?.add(body);
+      this.mixer = new AnimationMixer(this.camera);
+
+      this.run(this.animations['CameraAction'], this.camera, function (item: AnimationAction) {
+        scope.controls = new PointerLockControls(scope.camera, scope.renderer.domElement);
+
+        scope.scene.add(scope.controls.getObject());
+        scope.run(scope.animations['Sits_on_a_couch_attention_B'], scope.scene.getObjectByName('Armature'));
+      });
 
       this.renderer.setAnimationLoop(this.animate.bind(this));
 
@@ -248,8 +275,13 @@ export class GameComponent extends BaseComponent implements AfterViewInit, OnDes
     });
   }
 
+  private clock: THREE.Clock = new THREE.Clock;
+
   private animate(): void {
-    this.controls.update();
+    let delta = this.clock.getDelta();
+
+    this.mixer.update(delta);
+
     this.renderer.render(this.scene, this.camera);
   }
 
